@@ -13,8 +13,19 @@ public class PlayerMovement : MonoBehaviour
     public Animator animator;
     public Button jumpButton;
     
+    public GameObject CameraTarget;
+    private float _cinemachineTargetYaw;
+    private float _cinemachineTargetPitch;
+
+    private Vector2 _input;
     // Start is called before the first frame update
-   public void OnMove(InputValue value)
+    private void Start()
+    {
+        _cinemachineTargetYaw = CameraTarget.transform.rotation.eulerAngles.y;
+        //_cinemachineTargetPitch = CameraTarget.transform.rotation.eulerAngles.x;
+    }
+
+    public void OnMove(InputValue value)
     {
         movementInput = value.Get<Vector2>();
         
@@ -30,7 +41,7 @@ public class PlayerMovement : MonoBehaviour
         animator.SetFloat("Speed", move.magnitude);
         Debug.Log(move);
     }
-    // Function to rotate the player to the direction of the joystick input
+    // Function to rotate the player to the direction of the camera joystick input
     public void Look(Vector2 look)
     {
         if (look.magnitude < 0.1f)
@@ -59,5 +70,39 @@ public class PlayerMovement : MonoBehaviour
         yield return new WaitForSeconds(1.5f);
         IsGrounded();
         jumpButton.interactable = true;
+    }
+
+    public void Aim(Vector2 aim)
+    {
+        _input = aim;
+    }
+    public void CameraRotation()
+    {
+        // if there is an input and camera position is not fixed
+        if (_input.sqrMagnitude >= 0.01f)
+        {
+            Debug.Log("camare" + _input);
+            //Don't multiply mouse input by Time.deltaTime;
+            _cinemachineTargetYaw += _input.x ;
+            _cinemachineTargetPitch += _input.y;
+        }
+
+        // clamp our rotations so our values are limited 360 degrees
+        _cinemachineTargetYaw = ClampAngle(_cinemachineTargetYaw, float.MinValue, float.MaxValue);
+        _cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, -30, 70);
+
+        // Cinemachine will follow this target
+        CameraTarget.transform.rotation = Quaternion.Euler(_cinemachineTargetPitch + 0, _cinemachineTargetYaw, 0.0f);
+    }
+    private static float ClampAngle(float lfAngle, float lfMin, float lfMax)
+    {
+        if (lfAngle < -360f) lfAngle += 360f;
+        if (lfAngle > 360f) lfAngle -= 360f;
+        return Mathf.Clamp(lfAngle, lfMin, lfMax);
+    }
+
+    private void LateUpdate()
+    {
+        CameraRotation();
     }
 }
